@@ -1,22 +1,22 @@
-// index.js
-require("dotenv").config();
-
-const express = require("express");
+// Import dependencies
+require('dotenv').config();
+const express = require('express');
 const app = express();
-const { responseLogger } = require("./middleware/responseLogger");
+const { logResponseTime } = require('./middleware/responseLogger');
 
-// Routes
-const openAiRoute = require("./routes/openai");
-const indexRoute = require("./routes/index");
+// Import routes
+const openAiRoute = require('./routes/openai');
+const indexRoute = require('./routes/index');
 
-// Middleware for logging requests
-//app.use(responseLogger);
+// Use middleware for logging requests
+app.use(logResponseTime);
 
-// Routes
-app.use("/", indexRoute);
-app.use("/openai", openAiRoute);
+// Define routes
+app.use('/', indexRoute);
+app.use('/openai', openAiRoute);
 
-// Start the server
-app.listen(3000, () => {
-  console.log("Server is listening on port 3000");
+// Start server
+const port = process.env.PORT || 3000;
+app.listen(port, () => {
+  console.log(`Server listening on port ${port}`);
 });

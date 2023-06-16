@@ -1,16 +1,12 @@
 // openaiWrapper.js
 
 // Import required modules
-const logger = require('../util/logger');
+const { log, debugLevels} = require('../util/logger');
 const { Configuration, OpenAIApi } = require('openai');
 
 // Set DEBUG_MODE environment variable to "ALL" to enable all debug logs
 // (WARNING: ALL will log your API key in plain text so be cautious when using it).
 const DEBUG_MODE = process.env.DEBUG_MODE;
-
-// Set up logging
-const log = logger.log;
-const debugLevels = logger.debugLevels;
 
 // Class to wrap OpenAI API functionality
 class OpenAIWrapper {
