@@ -21,7 +21,7 @@ class OpenAIWrapper {
     this.configuration = new Configuration({
       apiKey,
     });
-    log('OpenAI Configuration:' + this.configuration, debugLevels.ALL);
+    log('OpenAI Configuration:' + this.configuration, debugLevels.VERBOSE);
 
     // Instantiate API client
     this.openai = new OpenAIApi(this.configuration);
@@ -29,22 +29,22 @@ class OpenAIWrapper {
 
   /**
    * Generate chat completion data using the OpenAI API.
-   * @param {string[]} messages - An array of strings representing the chat messages.
+   * @param {string[]} message - An array of strings representing the chat message.
    * @param {string} [model='gpt-3.5-turbo-16k'] - The name or ID of the model to use.
    * @param {number} [temperature=1.0] - The temperature to use for sampling.
    * @returns {Promise} A Promise that resolves with the chat completion data.
    */
-  async createChatCompletion(messages, model = 'gpt-3.5-turbo-16k', temperature = 1.0) {
+  async createChatCompletion(message, model = 'gpt-3.5-turbo-16k', temperature = 1.0) {
     // Check that required parameters are present
-    if (!messages || !model) return;
-
+    if (!message) return;
+    const messages = [{ role: "system", content: message }];
+    log(`Generating chat completion data... with message ${message}, model ${model}, temperature ${temperature}`, debugLevels.BASIC);
     try {
       // Generate chat completion data
       const chat_completion = await this.openai.createChatCompletion({
         model,
         messages,
         temperature,
-        max_tokens: 16000,
       });
 
       // Log completion data
