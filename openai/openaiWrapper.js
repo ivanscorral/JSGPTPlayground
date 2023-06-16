@@ -3,9 +3,11 @@ const { Configuration, OpenAIApi } = require('openai');
 
 class OpenAIWrapper {
   constructor(apiKey) {
+    console.log('OpenAI API Key:', apiKey);
     this.configuration = new Configuration({
       apiKey,
     });
+    console.log('OpenAI Configuration:', this.configuration);
     this.openai = new OpenAIApi(this.configuration);
   }
 
@@ -17,7 +19,8 @@ class OpenAIWrapper {
       });
       return chat_completion;
     } catch (error) {
-      throw new Error('An error occurred while making the OpenAI API request.');
+      console.log('OpenAI API error:', error);
+      throw error;
     }
   }
 }
