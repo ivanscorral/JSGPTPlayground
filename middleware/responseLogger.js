@@ -2,14 +2,14 @@ const { log, debugLevels } = require("../util/logger");
 const responseTime = require("response-time");
 
 /**
- * Returns a string with the given message and color.
- * @param {string} message - The message to colorize.
+ * Colorizes a keyword with the given color.
+ * @param {string} keyword - The keyword to colorize.
  * @param {string} color - The color code to use.
- * @returns {string} The colorized message.
+ * @returns {string} The colorized keyword.
  */
-const colorize = (message, color) => {
+const colorizeKeyword = (keyword, color) => {
   const resetCode = "\x1b[0m";
-  return `${color}${message}${resetCode}`;
+  return `${color}${keyword}${resetCode}`;
 };
 
 /**
@@ -19,28 +19,27 @@ const colorize = (message, color) => {
  * @param {number} time - The response time in milliseconds.
  */
 const logResponseTime = responseTime((req, res, time) => {
-  const requestInfo = `${colorize(req.method, "\x1b[32m")} ${colorize(
-    req.originalUrl,
-    "\x1b[33m"
-  )}`;
+  // Extract pertinent request information
+  const { method, originalUrl } = req;
+
+  // Colorized request information
+  const requestInfo = `${colorizeKeyword(method, "\x1b[32m")} ${colorizeKeyword(originalUrl, "\x1b[33m")}`;
+
+  // Extract additional details from the request
   const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
   const userAgent = req.headers["user-agent"];
   const query = JSON.stringify(req.query);
 
-  if (res.statusCode >= 400) {
-    // Log request info and error message if the status code is >= 400.
-    log(colorize(requestInfo, "\x1b[32m"));
-    log(colorize("Error: ", "\x1b[31m") + res.statusMessage);
-  } else {
-    // Log request info if the status code is < 400.
-    log(colorize(requestInfo, "\x1b[32m"));
-  }
+  // Determine if the response is an error
+  const isError = res.statusCode >= 400;
+  const errorLabel = isError ? colorizeKeyword("Error:", "\x1b[31m") : "";
 
-  // Log additional details about the request.
-  const logDetails = `${colorize("IP:", "\x1b[32m")} ${ip}, ${colorize(
-    "User-Agent:",
-    "\x1b[32m"
-  )} ${userAgent}, ${colorize("Query:", "\x1b[32m")} ${query}`;
+  // Log request information and error message if applicable
+  log(requestInfo);
+  if (isError) log(`${errorLabel} ${res.statusMessage}`);
+
+  // Log additional details about the request
+  const logDetails = `${colorizeKeyword("IP:", "\x1b[32m")} ${ip}, ${colorizeKeyword("User-Agent:", "\x1b[32m")} ${userAgent}, ${colorizeKeyword("Query:", "\x1b[32m")} ${query}`;
   log(logDetails, debugLevels.VERBOSE);
 });
 
