@@ -31,15 +31,16 @@ const debugLevels = {
    * @param {string} [minimumLevel='NONE'] - The minimum debug level required to log the message
    * @returns {boolean} Whether the message should be logged or not
    */
-  function shouldLog(minimumLevel = 'NONE') {
-    // Get the current debug level as an integer
+  function shouldLog(minDebugLevel = 'NONE') {
     const currentDebugLevel = getCurrentDebugLevel();
-    
-    // Get the minimum level value
-    const minimumLevelValue = debugLevels[String(minimumLevel).toUpperCase()] || 0;
-  
-    // Return true if the current debug level is greater than or equal to the minimum level value or is set to ALL
-    return currentDebugLevel >= minimumLevelValue;
+    if (currentDebugLevel === debugLevels.NONE) {
+      return false;
+    }
+    if (currentDebugLevel === debugLevels.ALL) {
+      return true;
+    }
+    const minDebugLevelValue = debugLevels[String(minDebugLevel).toUpperCase()] || 0;
+    return currentDebugLevel >= minDebugLevelValue;;
   }
   
   /**
