@@ -5,12 +5,13 @@ require('dotenv').config();
 
 // express is a web application framework for Node.js
 const express = require('express');
+const { log, debugLevels } = require('./util/logger');
+const {logResponseTime} = require('./middleware/responseLogger');
 
 // Create an express application
 const app = express();
-
-// Middleware for logging response time
-const { logResponseTime } = require('./middleware/responseLogger');
+app.use(logResponseTime)
+app.use(express.json());
 
 // Import routes
 // openAiRoute is a route for OpenAI related endpoints
@@ -19,9 +20,6 @@ const openAiRoute = require('./routes/openai');
 // indexRoute is a route for the root endpoint
 const indexRoute = require('./routes/index');
 
-// Use middleware for logging requests
-// logResponseTime will be used in every request to log the response time
-app.use(logResponseTime);
 
 // Define routes
 // The root route (/) will use the indexRoute

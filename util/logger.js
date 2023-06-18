@@ -14,15 +14,15 @@ const debugLevels = {
     ALL: 3,
   };
   
-  /**
-   * Parses the debug level from the environment variable and converts it to an integer value
-   *
-   * @returns {number} The current debug level
-   */
+
   function getCurrentDebugLevel() {
     const currentDebugLevel = process.env.DEBUG_LEVEL || 'NONE';
+    const level = debugLevels[currentDebugLevel.toUpperCase()];
+    if (level === undefined) {
+      throw new Error(`Invalid debug level: ${currentDebugLevel}`);
+    }
   
-    return debugLevels[currentDebugLevel.toUpperCase()];
+    return level;
   }
   
   /**
