@@ -19,19 +19,15 @@ class OpenAIWrapper {
    * Removes the last user input message from the chat history.
    * @param {object} chat - The chat object containing the chat history.
    * @returns {object} - The updated chat object.
-   */
-  async undoLastCompletion(chat) {
-    try {
-      if (chat.messages.length > 2) {
-        chat.messages = chat.messages.slice(0, -2);
-        log(`Done, updated messages: ${JSON.stringify(chat.messages)}`, debugLevels.ALL);
-      }
-      return chat;
-    } catch (error) {
-      log(`Error occurred while undoing completion: ${error}`, debugLevels.BASIC);
-      throw error;
-    }
-  }
+   */async undoLastCompletion(chat) {
+  return (chat.messages.length <= 2)
+  ? chat
+  : (
+      chat.messages = chat.messages.slice(0, -2),
+      log(`Done, updated messages: ${JSON.stringify(chat.messages)}`, debugLevels.ALL),
+      chat
+    );
+}
 
   /**
    * Generates the next message in the chat using OpenAI API.
@@ -39,23 +35,31 @@ class OpenAIWrapper {
    * @returns {object} - The updated chat object.
    * @throws - If there's an error with the OpenAI API.
    */
-  async chatMessageCompletion(chat) {
-    if (!chat.messages.length) return chat;
-    try {
-      const chatCompletion = await this.openai.createChatCompletion({
-        model: chat.model,
-        messages: chat.messages,
-        max_tokens: chat.maxTokens,
-        temperature: chat.temperature,
-        presence_penalty: chat.presence_penalty
-      });
-      chat.messages.push(chatCompletion.data.choices[0].message);
-      return chat;
-    } catch (error) {
-      log(`OpenAI API error: ${error}`, debugLevels.BASIC);
-      throw error;
-    }
+  async createChatCompletion(openai, chat) {
+  const chatCompletion = await openai.createChatCompletion({
+    model: chat.model,
+    messages: chat.messages,
+    max_tokens: chat.maxTokens,
+    temperature: chat.temperature,
+    presence_penalty: chat.presence_penalty
+  });
+
+  chat.messages.push(chatCompletion.data.choices[0].message);
+  return chat;
+}
+
+async chatMessageCompletion(chat) {
+  if (!chat.messages.length) throw new Error('Chat is empty');
+
+  try {
+    return await createChatCompletion(this.openai, chat);
+  } catch (error) {
+    log(`OpenAI API error: ${error}`, debugLevels.BASIC);
+    throw error;
   }
+}
+
+  
 
   /**
    * Regenerates the last generated message in the chat.
@@ -64,10 +68,15 @@ class OpenAIWrapper {
    * @throws - If there's an error with the OpenAI API.
    */
   async regenerateLastCompletion(chat) {
-    log('Regenerating last completion', debugLevels.BASIC);
+    log('Regenerating last completion', debugLevels.ALL++++++++++++++++++++);
     if (chat.messages.length) {
       chat.messages.pop();
-      return this.chatMessageCompletion(chat);
+      try {
+        return await this.chatMessageCompletion(chat);
+      } catch (error) {
+        log(`OpenAI API request error: ${error}`, debugLevels.NONE);
+        throw error;
+      }
     }
     return chat;
   }
