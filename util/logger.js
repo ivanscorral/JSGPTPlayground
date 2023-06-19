@@ -7,53 +7,55 @@
  * @property {number} ALL - 3
  */
 
-const debugLevels = {
-    NONE: 0,
-    BASIC: 1,
-    VERBOSE: 2,
-    ALL: 3,
-  };
-  
+/**
+ * Returns whether the current debug level is greater than or equal to the given level.
+ * @param {number} level - The level to compare to the current debug level.
+ * @returns {boolean} Whether the current debug level is greater than or equal to the given level.
+ */
+function shouldLog(level) {
+  return debugLevels[envDebugLevel] >= level;
+}
 
-  function getCurrentDebugLevel() {
-    const currentDebugLevel = process.env.DEBUG_LEVEL || 'NONE';
-    const level = debugLevels[currentDebugLevel.toUpperCase()];
-    if (level === undefined) {
-      throw new Error(`Invalid debug level: ${currentDebugLevel}`);
-    }
-  
-    return level;
+const debugLevels = {
+  NONE: 0,
+  BASIC: 1,
+  VERBOSE: 2,
+  ALL: 3,
+};
+
+const envDebugLevel = process.env.DEBUG_LEVEL || 'NONE';
+
+/**
+ * Object containing functions for logging at different levels based on the current debug level.
+ */
+const log = {
+/**
+ * Logs a basic message if the current debug level is BASIC or higher.
+ * @param {string} message - The message to log.
+ */
+default: function(message) {
+  if (shouldLog(debugLevels.NONE)) {
+    console.info(message);
   }
+},
   
+  basic: function(message) {
+    if (shouldLog(debugLevels.BASIC)) console.info(message);
+  },
   /**
-   * Checks if the current debug level is greater than or equal to the minimum level specified
-   *
-   * @param {string} [minimumLevel='NONE'] - The minimum debug level required to log the message
-   * @returns {boolean} Whether the message should be logged or not
+   * Logs a verbose message if the current debug level is VERBOSE or higher.
+   * @param {string} message - The message to log.
    */
-  function shouldLog(minDebugLevel = 'NONE') {
-    const currentDebugLevel = getCurrentDebugLevel();
-    if (currentDebugLevel === debugLevels.NONE) {
-      return false;
-    }
-    if (currentDebugLevel === debugLevels.ALL) {
-      return true;
-    }
-    const minDebugLevelValue = debugLevels[String(minDebugLevel).toUpperCase()] || 0;
-    return currentDebugLevel >= minDebugLevelValue;;
-  }
-  
+  verbose: function(message) {
+    if (shouldLog(debugLevels.VERBOSE)) console.info(message);
+  },
   /**
-   * Logs a message if the current debug level is greater than or equal to the minimum level specified
-   *
-   * @param {string} message - The message to log
-   * @param {string} [minimumLevel='NONE'] - The minimum debug level required to log the message
+   * Logs a message regardless of the current debug level.
+   * @param {string} message - The message to log.
    */
-  function log(message, minimumLevel = 'NONE') {
-    if (shouldLog(minimumLevel)) {
-      console.log(message);
-    }
+  all: function(message) {
+    console.info(message);
   }
-  
-  module.exports = { debugLevels, log };
-  
+};
+
+module.exports = log;

@@ -1,5 +1,5 @@
 const fs = require("fs").promises;
-const { log, debugLevels } = require("../util/logger");
+const log = require("../util/logger");
 const path = require("path");
 
 class JSONDatabaseManager {
@@ -18,14 +18,14 @@ class JSONDatabaseManager {
    * @returns {Promise<Object|null>} - The chat data, or null if an error occurred.
    */
   async getChat(chatId) {
-    log(`Getting chat ${chatId}`, debugLevels.VERBOSE);
+    log.verbose(`Getting chat ${chatId}`);
     try {
       const fpath = path.join(this.baseDBPath, "chats", `${chatId}.json`);
-      log(`Reading chat ${chatId}`, debugLevels.VERBOSE);
+      log.verbose(`Data path: ${fpath}`);
       const data = await this.readJSON(
         path.join(fpath)
       );
-      log(`Data read successfully: ${data}`, debugLevels.ALL);
+      log.all(`Data read successfully: ${data}`);
       return data;
     } catch (error) {
       log(error, debugLevels.BASIC);
@@ -41,7 +41,7 @@ class JSONDatabaseManager {
   async storeChat(data) {
     const chatId = data.chatId;
     const filePath = path.join(this.baseDBPath, "chats", `${chatId}.json`);
-    log(`Storing chat ${chatId}`, debugLevels.VERBOSE);
+    log.verbose(`Storing chat ${chatId}...`);
     await this.createDirectory(path.dirname(filePath));
     await this.writeJSON(filePath, data);
   }
@@ -66,10 +66,10 @@ class JSONDatabaseManager {
    * @param {Object} data - The data to write to the file.
    */
   async writeJSON(filename, data) {
-    log(`Writing ${filename}...`, debugLevels.VERBOSE);
+    log.verbose(`Writing ${filename}...`);
     try {
       await fs.writeFile(filename, JSON.stringify(data));
-      log(`Wrote ${filename} successfully`, debugLevels.VERBOSE);
+      log.verbose(`Wrote ${filename} successfully`);
     } catch (error) {
       log(error, debugLevels.BASIC);
     }
@@ -82,7 +82,7 @@ class JSONDatabaseManager {
    * @returns {Promise<Object|null>} - The data read from the file, or null if an error occurred.
    */
   async readJSON(filename) {
-    log(`Reading ${filename}...`, debugLevels.VERBOSE);
+    log.verbose(`Reading ${filename}...`);
     try {
       const data = await fs.readFile(filename, "utf8");
       return JSON.parse(data);

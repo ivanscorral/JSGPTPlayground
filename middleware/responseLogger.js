@@ -40,7 +40,7 @@ const logResponseTime = responseTime((req, res, time) => {
 
   // Log additional details about the request
   const logDetails = `${colorizeKeyword("IP:", "\x1b[32m")} ${ip}, ${colorizeKeyword("User-Agent:", "\x1b[32m")} ${userAgent}, ${colorizeKeyword("Query:", "\x1b[32m")} ${query}`;
-  log(logDetails, debugLevels.VERBOSE);
+  log(logDetails);
 });
 
 module.exports = { logResponseTime };
