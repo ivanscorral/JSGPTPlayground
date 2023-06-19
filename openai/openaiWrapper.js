@@ -68,7 +68,7 @@ async chatMessageCompletion(chat) {
    * @throws - If there's an error with the OpenAI API.
    */
   async regenerateLastCompletion(chat) {
-    log('Regenerating last completion', debugLevels.ALL++++++++++++++++++++);
+    log('Regenerating last completion', debugLevels.ALL);
     if (chat.messages.length) {
       chat.messages.pop();
       try {
