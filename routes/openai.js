@@ -3,17 +3,32 @@ const router = express.Router();
 const { v4: uuidv4 } = require("uuid");
 const JSONDatabaseManager = require("../db/jsondb");
 const OpenAIWrapper = require("../openai/openaiwrapper");
+const log = require("../util/logger");
 
 // Set up database and OpenAI wrapper
 const dbManager = new JSONDatabaseManager();
 const openaiWrapper = new OpenAIWrapper(process.env.OPENAI_API_KEY);
 
-// Default settings for chat prompts
-const currentDate = new Date().toLocaleDateString();
+// Define default values for several parameters
+const currentDate = new Date().toLocaleDateString("es-ES", {
+  year: "numeric",
+  month: "long",
+  day: "numeric"
+});
 const DEFAULT_MAX_TOKENS = 4096;
-const DEFAULT_PRESENCE_PENALTY = 0.2;
-const DEFAULT_TEMPERATURE = 0.8;
+const DEFAULT_PRESENCE_PENALTY = 0.6;
+const DEFAULT_TEMPERATURE = 0.9;
 const DEFAULT_PROMPT = `You are ChatGPT, a language model created by OpenAI. Your training data includes knowledge up until 2021-09. You will act as an AI assistant. Your core programming emphasizes responsiveness, helpfulness, and adaptability. Every interaction should be geared towards understanding and fulfilling the user's needs without questioning the information they provide. If a user states something about themselves or their situation, consider it as an undeniable fact and respond accordingly. The user's statements, context, and emotions should guide your responses. Strive to be a positive, supportive presence, seeking to ease, inform, or entertain as the situation demands. The current date is ${currentDate}.`;
+
+router.post("/getChat", async (req, res) => {
+  const { chatId, authToken } = req.body;
+  if (!chatId) return res.status(400).send("chatId is required");
+  if (!authToken) return res.status(400).send("authToken is required");
+  else if (authToken !== process.env.AUTH_TOKEN) return res.status(401).send({ message: "Unauthorized" });
+  const chat = await dbManager.getChat(chatId);
+  if (!chat) return res.status(500).send("Server error, could not find chat");
+  res.status(200).send({ messages: chat.messages, usedTokens: chat.lastTokenCount, model: chat.model });
+});
 
 // Create a new chat
 router.post("/createNewChat", async (req, res) => {
@@ -24,6 +39,8 @@ router.post("/createNewChat", async (req, res) => {
   const maxTokens = req.body.max_tokens || DEFAULT_MAX_TOKENS;
   const presencePenalty = req.body.presence_penalty || DEFAULT_PRESENCE_PENALTY;
   const temperature = req.body.temperature || DEFAULT_TEMPERATURE;
+
+  log.all("Here is your random uuid " + uuidv4());
 
   if (authToken !== process.env.AUTH_TOKEN) {
     res.status(401).send({ message: "Unauthorized" });
@@ -88,7 +105,7 @@ router.post("/simpleChat", async (req, res) => {
 
     await storeChatPromise;
   } catch (error) {
-    log(error, debugLevels.BASIC);
+    log(error);
     res.status(500).send("An error occurred");
   }
 });

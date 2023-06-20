@@ -1,19 +1,22 @@
-const { log, debugLevels } = require('../util/logger');
+const log = require('../util/logger');
 const { Configuration, OpenAIApi } = require('openai');
 
 /**
  * A wrapper class for the OpenAI API.
  */
-class OpenAIWrapper {
+class OpenAIWrapper { 
   /**
    * Constructs an instance of OpenAIWrapper.
    * @param {string} apiKey - The OpenAI API key.
    */
   constructor(apiKey) {
-    log('OpenAI API Key: ' + apiKey, debugLevels.ALL);
+    this.apiKey = apiKey;
+    log.all(`Using OpenAI API key: ${apiKey}`);
     this.configuration = new Configuration({ apiKey });
     this.openai = new OpenAIApi(this.configuration);
   }
+  // 
+
 
   /**
    * Removes the last user input message from the chat history.
@@ -25,7 +28,7 @@ class OpenAIWrapper {
       ? chat
       : (
         chat.messages = chat.messages.slice(0, -2),
-        log(`Done, updated messages: ${JSON.stringify(chat.messages)}`, debugLevels.ALL),
+        log.verbose(`Done, updated messages: ${JSON.stringify(chat.messages)}`),
         chat
       );
   }
@@ -61,7 +64,7 @@ class OpenAIWrapper {
     try {
       return await this.createChatCompletion(chat);
     } catch (error) {
-      log(`OpenAI API error: ${error}`, debugLevels.BASIC);
+      log(`OpenAI API error: ${error}`);
       throw error;
     }
   }
@@ -79,7 +82,7 @@ class OpenAIWrapper {
       try {
         return await this.chatMessageCompletion(chat);
       } catch (error) {
-        log(`OpenAI API request error: ${error}`, debugLevels.NONE);
+        log(`OpenAI API request error: ${error}`);
         throw error;
       }
     }
@@ -96,11 +99,11 @@ class OpenAIWrapper {
    * @throws {Error} - If there's an error with the OpenAI API.
    */
   async createChatCompletion(messages, model = 'gpt-3.5-turbo-16k', temperature = 1.0, maxTokens = 4096) {
-    log(`messages: ${messages}, model: ${model}, temperature: ${temperature}, maxTokens: ${maxTokens}`, debugLevels.NONE);
+    log(`messages: ${messages}, model: ${model}, temperature: ${temperature}, maxTokens: ${maxTokens}`);
     try {
       return await this.openai.createChatCompletion({ model, messages, temperature, max_tokens: maxTokens });
     } catch (error) {
-      log(`OpenAI API error: ${error}`, debugLevels.BASIC);
+      log(`OpenAI API error: ${error}`);
       throw error;
     }
   }

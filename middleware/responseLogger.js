@@ -1,15 +1,15 @@
-const { log, debugLevels } = require("../util/logger");
+const log = require("../util/logger");
 const responseTime = require("response-time");
+const chalk = require("chalk");
 
 /**
  * Colorizes a keyword with the given color.
  * @param {string} keyword - The keyword to colorize.
- * @param {string} color - The color code to use.
+ * @param {Function} colorFn - The chalk color function to use.
  * @returns {string} The colorized keyword.
  */
-const colorizeKeyword = (keyword, color) => {
-  const resetCode = "\x1b[0m";
-  return `${color}${keyword}${resetCode}`;
+const colorizeKeyword = (keyword, colorFn) => {
+  return colorFn(keyword);
 };
 
 /**
@@ -22,24 +22,29 @@ const logResponseTime = responseTime((req, res, time) => {
   // Extract pertinent request information
   const { method, originalUrl } = req;
 
-  // Colorized request information
-  const requestInfo = `${colorizeKeyword(method, "\x1b[32m")} ${colorizeKeyword(originalUrl, "\x1b[33m")}`;
+  // Colorize request information
+  const coloredMethod = colorizeKeyword(method, chalk.green);
+  const coloredUrl = colorizeKeyword(originalUrl, chalk.yellow);
+  const requestInfo = `${coloredMethod} ${coloredUrl}`;
 
   // Extract additional details from the request
   const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
   const userAgent = req.headers["user-agent"];
-  const query = JSON.stringify(req.query);
+  const query = req.query; // Avoid unnecessary JSON.stringify
 
   // Determine if the response is an error
   const isError = res.statusCode >= 400;
-  const errorLabel = isError ? colorizeKeyword("Error:", "\x1b[31m") : "";
+  const errorLabel = isError ? colorizeKeyword("Error:", chalk.red) : "";
 
   // Log request information and error message if applicable
   log(requestInfo);
   if (isError) log(`${errorLabel} ${res.statusMessage}`);
 
   // Log additional details about the request
-  const logDetails = `${colorizeKeyword("IP:", "\x1b[32m")} ${ip}, ${colorizeKeyword("User-Agent:", "\x1b[32m")} ${userAgent}, ${colorizeKeyword("Query:", "\x1b[32m")} ${query}`;
+  const coloredIp = colorizeKeyword("IP:", chalk.green);
+  const coloredUserAgent = colorizeKeyword("User-Agent:", chalk.green);
+  const coloredQuery = colorizeKeyword("Query:", chalk.green);
+  const logDetails = `${coloredIp} ${ip}, ${coloredUserAgent} ${userAgent}, ${coloredQuery} ${JSON.stringify(query)}`;
   log(logDetails);
 });
 
