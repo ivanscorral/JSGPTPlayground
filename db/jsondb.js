@@ -28,7 +28,7 @@ class JSONDatabaseManager {
       log.all(`Data read successfully: ${data}`);
       return data;
     } catch (error) {
-      log(error, debugLevels.BASIC);
+      log.default(error);
       return null;
     }
   }
@@ -55,7 +55,7 @@ class JSONDatabaseManager {
     try {
       await fs.mkdir(directoryPath, { recursive: true });
     } catch (error) {
-      log(error, debugLevels.BASIC);
+      log.default(error);
     }
   }
 
@@ -71,7 +71,7 @@ class JSONDatabaseManager {
       await fs.writeFile(filename, JSON.stringify(data));
       log.verbose(`Wrote ${filename} successfully`);
     } catch (error) {
-      log(error, debugLevels.BASIC);
+      log.default(error);
     }
   }
 
@@ -87,7 +87,7 @@ class JSONDatabaseManager {
       const data = await fs.readFile(filename, "utf8");
       return JSON.parse(data);
     } catch (error) {
-      log(error, debugLevels.BASIC);
+      log.default(error);
       return null;
     }
   }
