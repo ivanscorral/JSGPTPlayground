@@ -13,6 +13,9 @@
  * @returns {boolean} Whether the current debug level is greater than or equal to the given level.
  */
 function shouldLog(level) {
+  if (debugLevels[envDebugLevel] === debugLevels.ALL) {
+    return true;
+  }
   return debugLevels[envDebugLevel] >= level;
 }
 
