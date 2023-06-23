@@ -1,51 +1,38 @@
-const log = require("../util/logger");
-const responseTime = require("response-time");
-const chalk = require("chalk");
+//
+const log = require('../util/logger');
+const {colorize, ansiColors} = require('../util/colorizer');
+const responseTime = require('response-time');
+
 
 /**
- * Colorizes a keyword with the given color.
- * @param {string} keyword - The keyword to colorize.
- * @param {Function} colorFn - The chalk color function to use.
+ * Colorizes a keyword with the given ANSI color code.
+ *
+ * @param {string} keyword The keyword to colorize.
+ * @param {string} colorCode The ANSI color code.
  * @returns {string} The colorized keyword.
  */
-const colorizeKeyword = (keyword, colorFn) => {
-  return colorFn(keyword);
-};
+
 
 /**
  * Logs the response time of an HTTP request.
- * @param {object} req - The HTTP request object.
- * @param {object} res - The HTTP response object.
- * @param {number} time - The response time in milliseconds.
  */
 const logResponseTime = responseTime((req, res, time) => {
-  // Extract pertinent request information
-  const { method, originalUrl } = req;
+	const isError = res.statusCode >= 400;
+	const errorLabel = isError ? colorize('Error:', ansiColors.red) : '';
+	log(`${colorize('Time', ansiColors.magenta)}:  ${time}ms`);
+	const logDetails = [
+		colorize(req.method, ansiColors.green),
+		colorize(req.originalUrl, ansiColors.dimYellow),
+		`[${colorize('IP:', ansiColors.info)}${req.headers['x-forwarded-for'] || req.socket.remoteAddress}, `,
+		`${colorize('User-Agent:', ansiColors.info)}${req.headers['user-agent']}, `,
+		`${colorize('Body:', ansiColors.info)}${JSON.stringify(req.body)}]`,
+	].join('');
 
-  // Colorize request information
-  const coloredMethod = colorizeKeyword(method, chalk.green);
-  const coloredUrl = colorizeKeyword(originalUrl, chalk.yellow);
-  const requestInfo = `${coloredMethod} ${coloredUrl}`;
+	log(logDetails);
 
-  // Extract additional details from the request
-  const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
-  const userAgent = req.headers["user-agent"];
-  const query = req.query; // Avoid unnecessary JSON.stringify
-
-  // Determine if the response is an error
-  const isError = res.statusCode >= 400;
-  const errorLabel = isError ? colorizeKeyword("Error:", chalk.red) : "";
-
-  // Log request information and error message if applicable
-  log(requestInfo);
-  if (isError) log(`${errorLabel} ${res.statusMessage}`);
-
-  // Log additional details about the request
-  const coloredIp = colorizeKeyword("IP:", chalk.green);
-  const coloredUserAgent = colorizeKeyword("User-Agent:", chalk.green);
-  const coloredQuery = colorizeKeyword("Query:", chalk.green);
-  const logDetails = `${coloredIp} ${ip}, ${coloredUserAgent} ${userAgent}, ${coloredQuery} ${JSON.stringify(query)}`;
-  log(logDetails);
+	if (isError) {
+		log(`${errorLabel} [${res.statusCode}]: ${res.statusMessage}`);
+	}
 });
 
 module.exports = { logResponseTime };
