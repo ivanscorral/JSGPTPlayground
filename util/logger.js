@@ -7,53 +7,63 @@
  * @property {number} ALL - 3
  */
 
-/**
- * Returns whether the current debug level is greater than or equal to the given level.
- * @param {number} level - The level to compare to the current debug level.
- * @returns {boolean} Whether the current debug level is greater than or equal to the given level.
- */
-function shouldLog(level) {
-  if (debugLevels[envDebugLevel] === debugLevels.ALL) {
-    return true;
-  }
-  return debugLevels[envDebugLevel] >= level;
-}
-
 const debugLevels = {
-  NONE: 0,
-  BASIC: 1,
-  VERBOSE: 2,
-  ALL: 3,
+	NONE: 0,
+	BASIC: 1,
+	VERBOSE: 2,
+	ALL: 3,
 };
+
+
+// Read the debug level from the environment or default to NONE
 
 const envDebugLevel = process.env.DEBUG_LEVEL || 'NONE';
 
 /**
  * Object containing functions for logging at different levels based on the current debug level.
  */
+
+/**
+ * Logs the given message to the console if the current debug level is at least NONE. 
+ * This is the default debug level and will therefore log always log, independently of the debug level.
+ *
+ * @param {string} message - The message to be logged.
+ */
 function log(message) {
-  if (shouldLog(debugLevels.NONE)) {
-    console.info(message);
-  }
+	if (debugLevels[envDebugLevel] >= debugLevels.NONE) {
+		console.info(message);
+	}
 }
 
+/**
+ * Logs a message to the console if the current debug level is set to BASIC or higher.
+ *
+ * @param {string} message - The message to be logged.
+ */
 log.basic = function(message) {
-  if (shouldLog(debugLevels.BASIC)) {
-    console.info(message);
-  }
+	if (debugLevels[envDebugLevel] >= debugLevels.BASIC) {
+		console.info(message);
+	}
 };
 
+/**
+ * Logs a message to the console if the debug level is set to VERBOSE or higher.
+ *
+ * @param {string} message - The message to be logged.
+ */
 log.verbose = function(message) {
-  if (shouldLog(debugLevels.VERBOSE)) {
-    console.info(message);
-  }
+	if (debugLevels[envDebugLevel] >= debugLevels.VERBOSE) {
+		console.info(message);
+	}
 };
 
+/**
+ * Logs a message to the console if the debug level is set to ALL.
+ *
+ * @param {string} message - The message to be logged.
+ */
 log.all = function(message) {
-  console.info(message);
+	console.info(message);
 };
-
-module.exports = log;
-
 
 module.exports = log;
