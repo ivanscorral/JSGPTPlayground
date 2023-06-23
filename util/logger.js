@@ -14,7 +14,6 @@ const debugLevels = {
 	ALL: 3,
 };
 
-
 // Read the debug level from the environment or default to NONE
 
 const envDebugLevel = process.env.DEBUG_LEVEL || 'NONE';
@@ -24,7 +23,7 @@ const envDebugLevel = process.env.DEBUG_LEVEL || 'NONE';
  */
 
 /**
- * Logs the given message to the console if the current debug level is at least NONE. 
+ * Logs the given message to the console if the current debug level is at least NONE.
  * This is the default debug level and will therefore log always log, independently of the debug level.
  *
  * @param {string} message - The message to be logged.
@@ -40,7 +39,7 @@ function log(message) {
  *
  * @param {string} message - The message to be logged.
  */
-log.basic = function(message) {
+log.basic = function (message) {
 	if (debugLevels[envDebugLevel] >= debugLevels.BASIC) {
 		console.info(message);
 	}
@@ -51,7 +50,7 @@ log.basic = function(message) {
  *
  * @param {string} message - The message to be logged.
  */
-log.verbose = function(message) {
+log.verbose = function (message) {
 	if (debugLevels[envDebugLevel] >= debugLevels.VERBOSE) {
 		console.info(message);
 	}
@@ -62,7 +61,7 @@ log.verbose = function(message) {
  *
  * @param {string} message - The message to be logged.
  */
-log.all = function(message) {
+log.all = function (message) {
 	console.info(message);
 };
 

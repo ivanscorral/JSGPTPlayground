@@ -20,15 +20,15 @@ class JSONDatabaseManager {
 	async getChat(chatId) {
 		log.verbose(`Getting chat ${chatId}`);
 		try {
-			const fpath = path.join(this.baseDBPath, 'chats', `${chatId}.json`);
-			log.verbose(`Data path: ${fpath}`);
+			const filePath = path.join(this.baseDBPath, 'chats', `${chatId}.json`);
+			log.verbose(`Data path: ${filePath}`);
 			const data = await this.readJSON(
-				path.join(fpath)
+				path.join(filePath)
 			);
 			log.all(`Data read successfully: ${data}`);
 			return data;
 		} catch (error) {
-			log.default(error);
+			log(error);
 			return null;
 		}
 	}
@@ -55,7 +55,7 @@ class JSONDatabaseManager {
 		try {
 			await fs.mkdir(directoryPath, { recursive: true });
 		} catch (error) {
-			log.default(error);
+			log(error);
 		}
 	}
 
@@ -71,7 +71,7 @@ class JSONDatabaseManager {
 			await fs.writeFile(filename, JSON.stringify(data));
 			log.verbose(`Wrote ${filename} successfully`);
 		} catch (error) {
-			log.default(error);
+			log(error);
 		}
 	}
 
@@ -87,7 +87,7 @@ class JSONDatabaseManager {
 			const data = await fs.readFile(filename, 'utf8');
 			return JSON.parse(data);
 		} catch (error) {
-			log.default(error);
+			log(error);
 			return null;
 		}
 	}

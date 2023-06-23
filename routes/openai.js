@@ -10,13 +10,13 @@ const dbManager = new JSONDatabaseManager();
 const openaiWrapper = new OpenAIWrapper(process.env.OPENAI_API_KEY);
 
 // Define default values for several parameters
-const currentDate = new Date().toLocaleDateString('es-ES', {
+const currentDate = new Date().toLocaleDateString('en-US', {
 	year: 'numeric',
 	month: 'long',
 	day: 'numeric',
 });
 const DEFAULT_MAX_TOKENS = 4096;
-const DEFAULT_PRESENCE_PENALTY = 0.6;
+const DEFAULT_PRESENCE_PENALTY = 0.1;
 const DEFAULT_TEMPERATURE = 0.9;
 const DEFAULT_PROMPT = `You are ChatGPT, a language model created by OpenAI. Your training data includes knowledge up until 2021-09. You will act as an AI assistant. Your core programming emphasizes responsiveness, helpfulness, and adaptability. Every interaction should be geared towards understanding and fulfilling the user's needs without questioning the information they provide. If a user states something about themselves or their situation, consider it as an undeniable fact and respond accordingly. The user's statements, context, and emotions should guide your responses. Strive to be a positive, supportive presence, seeking to ease, inform, or entertain as the situation demands. The current date is ${currentDate}.`;
 
@@ -37,13 +37,11 @@ router.post('/getChat', async (req, res) => {
 				.status(500)
 				.send({ message: 'Server error, could not find chat' });
 		}
-		res
-			.status(200)
-			.send({
-				messages: chat.messages,
-				usedTokens: chat.lastTokenCount,
-				model: chat.model,
-			});
+		res.status(200).send({
+			messages: chat.messages,
+			usedTokens: chat.lastTokenCount,
+			model: chat.model,
+		});
 	} catch (error) {
 		console.error(error);
 		res.status(500).send({ message: 'Server error' });
@@ -81,15 +79,51 @@ router.post('/createNewChat', async (req, res) => {
 	res.status(200).send({ chatId });
 });
 
-async function isAuthorized(chat, authToken, res) {
-	const isUnauthorized = chat.authToken !== authToken;
+function getRequiredParameters(req, res, requiredParameters) {
+	let parameterValues = {};
+	let missingParameters = [];
 
-	if (isUnauthorized) {
-		await res.status(401).send({ message: 'Unauthorized' });
+	for (const parameter of requiredParameters) {
+		if (!req.body[parameter]) {
+			missingParameters.push(parameter);
+		} else {
+			parameterValues[parameter] = req.body[parameter];
+		}
+	}
+
+	if (missingParameters.length > 0) {
+		res.status(400).json({
+			message: `Missing required parameters: ${missingParameters.join(', ')}`,
+		});
 		return false;
 	}
 
+	return parameterValues;
+}
+
+async function isChatOwner(req, res) {
+	const parameters = getRequiredParameters(req, res, ['chatId', 'authToken']);
+
+	if (!parameters) {
+		return;
+	}
+
+	const { chatId, authToken } = parameters;
+	const chat = await readChat(chatId, authToken, res);
+
+	if (chat.authToken !== authToken) {
+		return res.status(401).json({ message: 'Unauthorized' });
+	}
 	return true;
+}
+
+// Check if chat exists
+
+async function readChat(chatId, authToken, res) {
+	const chat = await dbManager.getChat(chatId);
+	return chat === null
+		? res.status(400).send({ message: 'Chat not found' })
+		: chat;
 }
 
 // Regenerate the last chat completion
@@ -99,7 +133,7 @@ router.post('/regenerateLastCompletion', async (req, res) => {
 
 	const chat = await dbManager.getChat(chatId);
 	if (!chat) return res.status(500).send('Chat not found');
-	isAuthorized(chat, authToken, res);
+	isChatOwner(chat, authToken, res);
 	await openaiWrapper.regenerateLastCompletion(chat);
 	res.status(200).send(chat.messages[chat.messages.length - 1]);
 });
@@ -109,7 +143,7 @@ router.post('/undoLastCompletion', async (req, res) => {
 	const { chatId, authToken } = req.body;
 	if (!chatId) return res.status(400).send('chatId is required');
 	let chat = await dbManager.getChat(chatId);
-	await isAuthorized(chat, authToken, res);
+	await isChatOwner(chat, authToken, res);
 	if (!chat) {
 		return res.status(500).send('Chat not found');
 	}

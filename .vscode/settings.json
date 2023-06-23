@@ -1,0 +1,9 @@
+{
+    //enable eslint
+    "eslint.enable": true,
+    // set eslint to use unix line endings
+    "editor.formatOnPaste": true,
+    "editor.defaultFormatter": "rvest.vs-code-prettier-eslint",
+    "cSpell.caseSensitive": true,
+    "cSpell.allowCompoundWords": true,
+  }
