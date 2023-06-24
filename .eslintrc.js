@@ -13,6 +13,7 @@ module.exports = {
 		'linebreak-style': 0,
 		quotes: ['error', 'double'],
 		semi: ['warn', 'always'],
+		'no-unused-vars': ['warn'],
 	},
 	overrides: [
 		{
