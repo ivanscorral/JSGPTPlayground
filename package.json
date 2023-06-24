@@ -1,6 +1,6 @@
 {
 	"name": "JSGPTPlayground",
-	"version": "0.1.3",
+	"version": "0.1.5",
 	"description": "Testing the OpenAI API from NodeJS",
 	"main": "index.js",
 	"scripts": {
