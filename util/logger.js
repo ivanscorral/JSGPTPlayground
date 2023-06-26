@@ -1,3 +1,4 @@
+const { colorize, consoleColors } = require('../util/colorizer');
 /**
  * Object containing debug levels with corresponding integer values
  * @typedef {Object} DebugLevels
@@ -29,9 +30,7 @@ const envDebugLevel = process.env.DEBUG_LEVEL || 'NONE';
  * @param {string} message - The message to be logged.
  */
 function log(message) {
-	if (debugLevels[envDebugLevel] >= debugLevels.NONE) {
-		console.info(message);
-	}
+	console.info(colorize('[DEBUG]: ', consoleColors.magenta) + message);
 }
 
 /**
@@ -41,7 +40,7 @@ function log(message) {
  */
 log.basic = function (message) {
 	if (debugLevels[envDebugLevel] >= debugLevels.BASIC) {
-		console.info(message);
+		console.info(colorize('[BASIC]: ', consoleColors.lightGreen) + message);
 	}
 };
 
@@ -52,7 +51,7 @@ log.basic = function (message) {
  */
 log.verbose = function (message) {
 	if (debugLevels[envDebugLevel] >= debugLevels.VERBOSE) {
-		console.info(message);
+		console.info(colorize('[VERBOSE]: ', consoleColors.orange) +  message);
 	}
 };
 
@@ -62,7 +61,9 @@ log.verbose = function (message) {
  * @param {string} message - The message to be logged.
  */
 log.all = function (message) {
-	console.info(message);
+	if (debugLevels[envDebugLevel] === debugLevels.ALL) {
+		console.info(colorize('[ALL]: ', consoleColors.cyan) + message);
+	}
 };
 
 module.exports = log;

@@ -7,8 +7,11 @@ class JSONDatabaseManager {
    * Creates a new instance of the JSONDatabaseManager class.
    * @constructor
    */
+
 	constructor() {
 		this.baseDBPath = './data/';
+		const localeFormattedDate = new Date().toLocaleDateString('en-US');
+		this.defaultPrompt = `You are ChatGPT, a language model created by OpenAI. Your training data includes knowledge up until 2021-09. You will act as an AI assistant. Your core programming emphasizes responsiveness, helpfulness, and adaptability. Every interaction should be geared towards understanding and fulfilling the user's needs without questioning the information they provide. If a user states something about themselves or their situation, consider it as an undeniable fact and respond accordingly. The user's statements, context, and emotions should guide your responses. Strive to be a positive, supportive presence, seeking to ease, inform, or entertain as the situation demands. The current date is ${localeFormattedDate}.`;
 	}
 
 	/**
@@ -58,6 +61,34 @@ class JSONDatabaseManager {
 			log(error);
 		}
 	}
+
+	async fileExists(filePath) {
+		try {
+			const stats = await fs.stat(filePath);
+			return stats.isFile();
+		} catch (error) {
+			return false;
+		}
+	}
+
+
+	// Read initial prompts from data/prompts.json, if it doesn't exist, create it with an empty array
+	async listPrompts() {
+		const filePath = path.join(this.baseDBPath, 'prompts.json');
+		log.verbose('Getting prompts...');
+		if (await this.fileExists(filePath)) {
+			const data = await this.readJSON(filePath);
+			log.all(`Data read successfully: ${data}`);
+			return data;
+		} else {
+			// File doesn't exist, create it
+			log.verbose('File not found, creating it...');
+			const prompts = { initialPrompts: [{name: 'Default', value: this.defaultPrompt}] };
+			await this.writeJSON(filePath, prompts);
+			return prompts;
+		}
+	}
+
 
 	/**
    * Writes JSON data to a file.

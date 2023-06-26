@@ -132,6 +132,5 @@ dist
 .pnp.*
 
 pnpm-lock.yaml
-.vscode/settings.json
-.vscode/extensions.json
+.vscode/*.json
 

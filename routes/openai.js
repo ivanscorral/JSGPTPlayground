@@ -26,45 +26,65 @@ router.post('/getChat', async (req, res) => {
 		if (!chatId || !authToken) {
 			return res
 				.status(400)
-				.send({ message: 'chatId and authToken are required' });
+				.json({ message: 'chatId and authToken are required' });
 		}
 		if (authToken !== chat.authToken) {
-			return res.status(401).send({ message: 'Unauthorized' });
+			return res.status(401).json({ message: 'Unauthorized' });
 		}
 		const chat = await dbManager.getChat(chatId);
 		if (!chat) {
 			return res
 				.status(500)
-				.send({ message: 'Server error, could not find chat' });
+				.json({ message: 'Server error, could not find chat' });
 		}
-		res.status(200).send({
+		res.status(200).json({
 			messages: chat.messages,
 			usedTokens: chat.lastTokenCount,
 			model: chat.model,
 		});
 	} catch (error) {
 		console.error(error);
-		res.status(500).send({ message: 'Server error' });
+		res.status(500).json({ message: 'Server error' });
 	}
 });
 
 // List available initial prompts
 
-// Create a new chat
-router.post('/createNewChat', async (req, res) => {
-	const chatId = v4(); // generate a unique id
-	const authToken = req.body.authToken;
-	const model = req.body.model || 'gpt-3.5-turbo-16k';
-	const prompt = req.body.prompt || DEFAULT_PROMPT;
-	const maxTokens = req.body.max_tokens || DEFAULT_MAX_TOKENS;
-	const presencePenalty = req.body.presence_penalty || DEFAULT_PRESENCE_PENALTY;
-	const temperature = req.body.temperature || DEFAULT_TEMPERATURE;
-
-	if (authToken !== process.env.AUTH_TOKEN) {
-		res.status(401).send({ message: 'Unauthorized' });
-		return;
+router.get('/listPrompts', async (req, res) => {
+	try {
+		const prompts = await dbManager.listPrompts();
+		res.status(200).json({ prompts });
+	} catch (error) {
+		console.error(error);
+		res.status(500).json({ message: `Internal server error: ${error}` });
 	}
+});
 
+// A separate function to check authorization
+async function isAuthorized(authToken, res) {
+	return authToken === process.env.AUTH_TOKEN
+		? true
+		: res.status(401).json({ message: 'Unauthorized' });
+}
+
+router.post('/createNewChat', async (req, res) => {
+	// Destructuring with default values
+	const {
+		authToken,
+		model = 'gpt-3.5-turbo-16k',
+		prompt = DEFAULT_PROMPT,
+		max_tokens: maxTokens = DEFAULT_MAX_TOKENS,
+		presence_penalty: presencePenalty = DEFAULT_PRESENCE_PENALTY,
+		temperature = DEFAULT_TEMPERATURE
+	} = req.body;
+
+	// Check authorization
+	if (!await isAuthorized(authToken, res)) return;
+
+	// Generate a unique chatId
+	const chatId = v4();
+
+	// Construct chat object
 	const chat = {
 		chatId,
 		model,
@@ -75,106 +95,113 @@ router.post('/createNewChat', async (req, res) => {
 		temperature,
 		authToken,
 	};
-	dbManager.storeChat(chat);
-	res.status(200).send({ chatId });
+
+	// Store the chat and send response
+	try {
+		await dbManager.storeChat(chat);
+		log.basic(`Created new chat with id ${chatId}`);
+		res.status(200).json({ chatId });
+	} catch (error) {
+		log.basic(`Error creating chat: ${error}`);
+		res.status(500).json({ message: 'An error occurred wating the chat' });
+	}
 });
 
+
+async function getChat(req, res) {
+	const { chatId, authToken } =
+		getRequiredParameters(req, res, ['chatId', 'authToken']) || {};
+
+	// Early return if parameters are missing
+	if (!chatId || !authToken) return null;
+
+	// Fetch chat and return unauthorized or not found when necessary
+	const chat = await fetchChat(chatId);
+	return chat && chat.authToken === authToken
+		? chat
+		: res
+			.status(chat ? 401 : 400)
+			.json({ message: chat ? 'Unauthorized' : 'Chat not found' });
+}
+
+async function fetchChat(chatId) {
+	try {
+		return await dbManager.getChat(chatId);
+	} catch (error) {
+		log.basic('Error fetching chat:', error);
+		return null;
+	}
+}
+
 function getRequiredParameters(req, res, requiredParameters) {
-	let parameterValues = {};
-	let missingParameters = [];
+	const params = requiredParameters.reduce((acc, param) => {
+		if (req.body[param]) acc[param] = req.body[param];
+		return acc;
+	}, {});
 
-	for (const parameter of requiredParameters) {
-		if (!req.body[parameter]) {
-			missingParameters.push(parameter);
-		} else {
-			parameterValues[parameter] = req.body[parameter];
-		}
+	// Send error response if any required parameters are missing
+	const missingParams = requiredParameters.filter((param) => !params[param]);
+	if (missingParams.length) {
+		res
+			.status(400)
+			.json({
+				message: `Missing required parameters: ${missingParams.join(', ')}`,
+			});
+		return null;
 	}
 
-	if (missingParameters.length > 0) {
-		res.status(400).json({
-			message: `Missing required parameters: ${missingParameters.join(', ')}`,
-		});
-		return false;
-	}
-
-	return parameterValues;
-}
-
-async function isChatOwner(req, res) {
-	const parameters = getRequiredParameters(req, res, ['chatId', 'authToken']);
-
-	if (!parameters) {
-		return;
-	}
-
-	const { chatId, authToken } = parameters;
-	const chat = await readChat(chatId, authToken, res);
-
-	if (chat.authToken !== authToken) {
-		return res.status(401).json({ message: 'Unauthorized' });
-	}
-	return true;
-}
-
-// Check if chat exists
-
-async function readChat(chatId, authToken, res) {
-	const chat = await dbManager.getChat(chatId);
-	return chat === null
-		? res.status(400).send({ message: 'Chat not found' })
-		: chat;
+	return params;
 }
 
 // Regenerate the last chat completion
 router.post('/regenerateLastCompletion', async (req, res) => {
-	const { chatId, authToken } = req.body;
-	if (!chatId) return res.status(400).send('chatId is required');
-
-	const chat = await dbManager.getChat(chatId);
-	if (!chat) return res.status(500).send('Chat not found');
-	isChatOwner(chat, authToken, res);
+	const chat = await getChat(req, res);
+	if (!chat) return;
 	await openaiWrapper.regenerateLastCompletion(chat);
-	res.status(200).send(chat.messages[chat.messages.length - 1]);
+	return res.status(200).json({
+		regeneratedMessage: chat.messages[chat.messages.length - 1].content,
+	});
 });
 
 // Undo the last chat completion
 router.post('/undoLastCompletion', async (req, res) => {
-	const { chatId, authToken } = req.body;
-	if (!chatId) return res.status(400).send('chatId is required');
-	let chat = await dbManager.getChat(chatId);
-	await isChatOwner(chat, authToken, res);
-	if (!chat) {
-		return res.status(500).send('Chat not found');
+	const chat = getChat(req, res);
+	if (!chat) return;
+	if (chat.messages[chat.messages.length - 1]) {
+		chat.messages.pop();
+		try {
+			await dbManager.storeChat(chat);
+			return res
+				.status(200)
+				.json({ message: 'Last completion undone successfully' });
+		} catch (error) {
+			console.error(error);
+			return res
+				.status(500)
+				.json({ message: 'An error occurred while updating the chat' });
+		}
+	} else {
+		return res.status(400).json({ message: 'There is nothing to undo' });
 	}
-	await openaiWrapper.undoLastCompletion(chat);
-	res.status(200).send('Last completion undone successfully');
 });
 
 router.post('/simpleChat', async (req, res) => {
-	const { chatId, message, authToken } = req.body;
-	if (!chatId || !authToken || !message)
-		return res.status(400).send('One or more parameters are missing');
-	let chat = await dbManager.getChat(chatId);
+	let chat = await getChat(req, res);
+	const message = req.body.message;
+	if (!chat) return;
 
-	if (!chat) {
-		log.basic(`Chat ${chatId} not found`);
-		return res.status(500).send('Chat not found');
-	}
+	chat = openaiWrapper.appendCompletion(chat, message);
+	log.basic(`Chat: ${chat.messages[chat.messages.length - 1].content}`);
+	// Store the chat in the database and log the result in the background
+	await dbManager
+		.storeChat(chat);
+	// Respond with the newly generated message
+	return res
+		.status(200)
+		.json({ response: chat.messages[chat.messages.length - 1] });
 
-	chat.messages.push({ role: 'user', content: message });
-
-	try {
-		await openaiWrapper.chatMessageCompletion(chat);
-		const storeChatPromise = dbManager.storeChat(chat);
-		// Respond with the newly generated message
-		res.status(200).send({ response: chat.messages[chat.messages.length - 1] });
-
-		await storeChatPromise;
-	} catch (error) {
-		log(error);
-		res.status(500).send('An error occurred');
-	}
+	// Note: We are not waiting for storeChatPromise to complete. This means storing the chat
+	//       happens in the background and does not block the response from being sent.
 });
 
 module.exports = router;

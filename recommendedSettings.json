@@ -1,8 +1,7 @@
 {
     "eslint.enable": true,
     "editor.formatOnPaste": true,
-    "editor.defaultFormatter": "rvest.vs-code-prettier-eslint",
     "prettier.singleQuote": true,
     "cSpell.caseSensitive": true,
-    "cSpell.allowCompoundWords": true,
-  }
+    "cSpell.allowCompoundWords": true
+}

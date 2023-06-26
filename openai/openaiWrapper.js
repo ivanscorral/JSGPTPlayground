@@ -35,13 +35,13 @@ class OpenAIWrapper {
 	}
 
 	/**
-	 * Generates the next message in the chat using the OpenAI API.
-	 * @param {object} chat - The chat object containing the chat history.
-	 * @returns {object} - The updated chat object.
-	 * @throws {Error} - If there's an error with the OpenAI API.
-	 */
-	async appendCompletion(chat) {
-		// generate the next message using the OpenAI API
+   * Generates the next message in the chat using the OpenAI API.
+   * @param {object} chat - The chat object containing the chat history.
+   * @returns {object} - The updated chat object.
+   * @throws {Error} - If there's an error with the OpenAI API.
+   */
+	async appendCompletion(chat, message) {
+		chat.messages.push({role: 'user', content: message});
 		const chatCompletion = await this.openai.createChatCompletion({
 			model: chat.model,
 			messages: chat.messages,

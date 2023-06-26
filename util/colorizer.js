@@ -1,4 +1,4 @@
-const ansiColors = {
+const consoleColors = {
 	info: '\x1b[1;34m',
 	reset: '\x1b[0m',
 	green: '\x1b[32m',
@@ -10,10 +10,11 @@ const ansiColors = {
 	orange: '\x1b[33m',
 	lightRed: '\x1b[1;31m',
 	dimYellow: '\x1b[2;33m',
+	lightGreen: '\x1b[1;32m',
 };
 
 const colorize = (text, color) => {
-	return `${color}${text}${ansiColors.reset}`;
+	return `${color}${text}${consoleColors.reset}`;
 };
 
-module.exports = { colorize, ansiColors };
+module.exports = { colorize, consoleColors };
