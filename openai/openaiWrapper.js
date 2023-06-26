@@ -80,14 +80,14 @@ class OpenAIWrapper {
 	 * @throws {Error} - If the chat is empty or there's an error with the OpenAI API.
 	 */
 	async regenerateLastCompletion(chat) {
-		log.all('Regenerating last completion');
+		log.verbose('Regenerating last completion');
 		if (chat.messages.length) {
 			// remove the last message from the chat history and generate a new message
 			chat.messages.pop();
 			try {
 				return await this.chatMessageCompletion(chat);
 			} catch (error) {
-				log(`OpenAI API request error: ${error}`);
+				log.basic(`OpenAI API request error: ${error}`);
 				throw error;
 			}
 		}
@@ -109,7 +109,7 @@ class OpenAIWrapper {
 		temperature = 1.0,
 		maxTokens = 4096
 	) {
-		log(
+		log.basic(
 			`messages: ${messages}, model: ${model}, temperature: ${temperature}, maxTokens: ${maxTokens}`
 		);
 		try {
@@ -120,7 +120,7 @@ class OpenAIWrapper {
 				max_tokens: maxTokens,
 			});
 		} catch (error) {
-			log(`OpenAI API error: ${error}`);
+			log.basic(`OpenAI API error: ${error}`);
 			throw error;
 		}
 	}
