@@ -1,4 +1,4 @@
-const log = require('../util/logger');
+const log = require('../utils/logger');
 const { Configuration, OpenAIApi } = require('openai');
 
 /**
@@ -23,7 +23,7 @@ class OpenAIWrapper {
 	/**
 	 * Removes the last user input message from the chat history.
 	 * @param {object} chat - The chat object containing the chat history.
-	 * @returns {object} - The updated chat object.
+	 * @returns {Chat} - The updated chat object.
 	 */
 	async undoLastCompletion(chat) {
 		return chat.messages.length <= 2

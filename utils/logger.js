@@ -1,4 +1,4 @@
-const { colorize, consoleColors } = require('../util/colorizer');
+const { colorize, consoleColors } = require('../utils/colorizer');
 /**
  * Object containing debug levels with corresponding integer values
  * @typedef {Object} DebugLevels

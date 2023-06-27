@@ -1,5 +1,5 @@
 const fs = require('fs').promises;
-const log = require('../util/logger');
+const log = require('../utils/logger');
 const path = require('path');
 
 class JSONDatabaseManager {
@@ -7,7 +7,6 @@ class JSONDatabaseManager {
    * Creates a new instance of the JSONDatabaseManager class.
    * @constructor
    */
-
 	constructor() {
 		this.baseDBPath = './data/';
 		const localeFormattedDate = new Date().toLocaleDateString('en-US');

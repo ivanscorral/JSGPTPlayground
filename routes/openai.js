@@ -1,81 +1,70 @@
 const express = require('express');
 const router = express.Router();
+const constants = require('../constants/constants');
 const { v4 } = require('uuid');
 const JSONDatabaseManager = require('../db/jsondb');
 const OpenAIWrapper = require('../openai/openaiwrapper');
-const log = require('../util/logger');
+const log = require('../utils/logger');
 
-// Set up database and OpenAI wrapper
+// Import JSONDatabaseManager and OpenAIWrapper classes.
 const dbManager = new JSONDatabaseManager();
 const openaiWrapper = new OpenAIWrapper(process.env.OPENAI_API_KEY);
 
-// Define default values for several parameters
-const currentDate = new Date().toLocaleDateString('en-US', {
-	year: 'numeric',
-	month: 'long',
-	day: 'numeric',
-});
-const DEFAULT_MAX_TOKENS = 4096;
-const DEFAULT_PRESENCE_PENALTY = 0.1;
-const DEFAULT_TEMPERATURE = 0.9;
-const DEFAULT_PROMPT = `You are ChatGPT, a language model created by OpenAI. Your training data includes knowledge up until 2021-09. You will act as an AI assistant. Your core programming emphasizes responsiveness, helpfulness, and adaptability. Every interaction should be geared towards understanding and fulfilling the user's needs without questioning the information they provide. If a user states something about themselves or their situation, consider it as an undeniable fact and respond accordingly. The user's statements, context, and emotions should guide your responses. Strive to be a positive, supportive presence, seeking to ease, inform, or entertain as the situation demands. The current date is ${currentDate}.`;
-
-router.post('/getChat', async (req, res) => {
-	try {
-		const { chatId, authToken } = req.body;
-		if (!chatId || !authToken) {
-			return res
-				.status(400)
-				.json({ message: 'chatId and authToken are required' });
-		}
-		if (authToken !== chat.authToken) {
-			return res.status(401).json({ message: 'Unauthorized' });
-		}
-		const chat = await dbManager.getChat(chatId);
-		if (!chat) {
-			return res
-				.status(500)
-				.json({ message: 'Server error, could not find chat' });
-		}
-		res.status(200).json({
-			messages: chat.messages,
-			usedTokens: chat.lastTokenCount,
-			model: chat.model,
-		});
-	} catch (error) {
-		console.error(error);
-		res.status(500).json({ message: 'Server error' });
-	}
+/**
+ * Endpoint to retrieve chat object by chatId and authToken.
+ * @name getChat
+ * @route {POST} /getChat
+ * @param {string} chatId - The ID of the chat to retrieve.
+ * @param {string} authToken - The authentication token of the chat.
+ * @returns {Chat|null} - The chat data, or null if an error occurred.
+ */
+router.get('/getChat', async (req, res) => {
+	const chat = await getChat(req, res);
+	return res.status(200).json({
+		messages: chat.messages,
+		usedTokens: chat.lastTokenCount,
+		model: chat.model,
+	});
 });
 
 // List available initial prompts
 
-router.get('/listPrompts', async (req, res) => {
+router.get('/listPrompts', async (req, res, next) => {
 	try {
 		const prompts = await dbManager.listPrompts();
-		res.status(200).json({ prompts });
+		return res.status(200).json({ prompts });
 	} catch (error) {
-		console.error(error);
-		res.status(500).json({ message: `Internal server error: ${error}` });
+		next(error); // Pass the error to the error handler middleware
 	}
 });
 
-// A separate function to check authorization
+/**
+ * Check if a request is authorized
+ *
+ * @param {string} authToken - the authorization token
+ * @param {Object} res - the response object
+ * @returns {boolean} true if authorized, false otherwise
+ */
 async function isAuthorized(authToken, res) {
 	return authToken === process.env.AUTH_TOKEN
 		? true
 		: res.status(401).json({ message: 'Unauthorized' });
 }
-
+/**
+ * Endpoint to create a new chat
+ *
+ * @param {Object} req - the request object
+ * @param {Object} res - the response object
+ */
 router.post('/createNewChat', async (req, res) => {
 	// Destructuring with default values
 	const {
 		authToken,
-		model = 'gpt-3.5-turbo-16k',
-		prompt = DEFAULT_PROMPT,
-		max_tokens: maxTokens = DEFAULT_MAX_TOKENS,
-		presence_penalty: presencePenalty = DEFAULT_PRESENCE_PENALTY,
-		temperature = DEFAULT_TEMPERATURE
+		model = constants.DEFAULT_MODEL,
+		prompt = constants.DEFAULT_PROMPT,
+		max_tokens: maxTokens = constants.DEFAULT_MAX_TOKENS,
+		presence_penalty: presencePenalty = constants.DEFAULT_PRESENCE_PENALTY,
+		temperature = constants.DEFAULT_TEMPERATURE
 	} = req.body;
 
 	// Check authorization
@@ -100,17 +89,26 @@ router.post('/createNewChat', async (req, res) => {
 	try {
 		await dbManager.storeChat(chat);
 		log.basic(`Created new chat with id ${chatId}`);
-		res.status(200).json({ chatId });
+		return res.status(200).json({ chatId });
 	} catch (error) {
 		log.basic(`Error creating chat: ${error}`);
-		res.status(500).json({ message: 'An error occurred wating the chat' });
+		return res.status(500).json({ message: 'An error occurred waiting the chat' });
 	}
 });
 
-
+/**
+ * Fetches a chat with the given chatId and authToken, and returns it if the
+ * authToken matches the chat's authToken. If either chatId or authToken is
+ * missing, or if the chat is not found or unauthorized, an appropriate error
+ * response is returned.
+ *
+ * @param {Object} req - The request object
+ * @param {Object} res - The response object
+ * @return {Chat|null} The chat object, or null if chatId or authToken is missing
+ * or invalid.
+ */
 async function getChat(req, res) {
-	const { chatId, authToken } =
-		getRequiredParameters(req, res, ['chatId', 'authToken']) || {};
+	const { chatId, authToken } = req.method === 'GET' ? req.query : req.body;
 
 	// Early return if parameters are missing
 	if (!chatId || !authToken) return null;
@@ -124,6 +122,12 @@ async function getChat(req, res) {
 			.json({ message: chat ? 'Unauthorized' : 'Chat not found' });
 }
 
+
+/**
+ * Fetch chat from the database.
+ * @param {string} chatId - The unique ID of the chat.
+ * @returns {object|null} Chat object or null if not found.
+ */
 async function fetchChat(chatId) {
 	try {
 		return await dbManager.getChat(chatId);
@@ -133,6 +137,13 @@ async function fetchChat(chatId) {
 	}
 }
 
+/**
+ * Validate and retrieve required parameters from request body.
+ * @param {object} req - Express request object.
+ * @param {object} res - Express response object.
+ * @param {string[]} requiredParameters - Array of required parameter names.
+ * @returns {object|null} Object with parameters or null if any are missing.
+ */
 function getRequiredParameters(req, res, requiredParameters) {
 	const params = requiredParameters.reduce((acc, param) => {
 		if (req.body[param]) acc[param] = req.body[param];
@@ -153,55 +164,58 @@ function getRequiredParameters(req, res, requiredParameters) {
 	return params;
 }
 
-// Regenerate the last chat completion
+/**
+ * Regenerate the last completion of the chat.
+ */
 router.post('/regenerateLastCompletion', async (req, res) => {
 	const chat = await getChat(req, res);
 	if (!chat) return;
+
 	await openaiWrapper.regenerateLastCompletion(chat);
 	return res.status(200).json({
 		regeneratedMessage: chat.messages[chat.messages.length - 1].content,
 	});
 });
 
-// Undo the last chat completion
+/**
+ * Undo the last completion of the chat.
+ */
 router.post('/undoLastCompletion', async (req, res) => {
-	const chat = getChat(req, res);
+	const chat = await getChat(req, res);
 	if (!chat) return;
+	let status = openaiWrapper.undoLastCompletion(chat);
+	if (status === 0) return res.status(200).json({ message: 'Last completion undone successfully' });
 	if (chat.messages[chat.messages.length - 1]) {
 		chat.messages.pop();
 		try {
 			await dbManager.storeChat(chat);
-			return res
-				.status(200)
-				.json({ message: 'Last completion undone successfully' });
+			res.status(200).json({ message: 'Last completion undone successfully' });
 		} catch (error) {
-			console.error(error);
-			return res
-				.status(500)
-				.json({ message: 'An error occurred while updating the chat' });
+			log.basic('Error updating chat:', error);
+			res.status(500).json({ message: 'An error occurred while updating the chat' });
 		}
 	} else {
 		return res.status(400).json({ message: 'There is nothing to undo' });
 	}
 });
 
+/**
+ * Create a simple chat.
+ */
 router.post('/simpleChat', async (req, res) => {
 	let chat = await getChat(req, res);
-	const message = req.body.message;
 	if (!chat) return;
 
-	chat = openaiWrapper.appendCompletion(chat, message);
-	log.basic(`Chat: ${chat.messages[chat.messages.length - 1].content}`);
-	// Store the chat in the database and log the result in the background
-	await dbManager
-		.storeChat(chat);
-	// Respond with the newly generated message
-	return res
-		.status(200)
-		.json({ response: chat.messages[chat.messages.length - 1] });
+	const message = req.body.message;
+	chat = await openaiWrapper.appendCompletion(chat, message);
 
-	// Note: We are not waiting for storeChatPromise to complete. This means storing the chat
-	//       happens in the background and does not block the response from being sent.
+	log.basic(`Chat: ${chat.messages[chat.messages.length - 1].content}`);
+
+	// Store chat in the database and log result in the background
+	await dbManager.storeChat(chat);
+
+	// Respond with the newly generated message
+	return res.status(200).json({ response: chat.messages[chat.messages.length - 1] });
 });
 
 module.exports = router;

@@ -1,6 +1,6 @@
 //
-const log = require('../util/logger');
-const {colorize, ansiColors} = require('../util/colorizer');
+const log = require('../utils/logger');
+const {colorize, consoleColors} = require('../utils/colorizer');
 const responseTime = require('response-time');
 
 
@@ -18,14 +18,14 @@ const responseTime = require('response-time');
  */
 const logResponseTime = responseTime((req, res, time) => {
 	const isError = res.statusCode >= 400;
-	const errorLabel = isError ? colorize('Error:', ansiColors.red) : '';
-	log(`${colorize('Time', ansiColors.magenta)}:  ${time}ms`);
+	const errorLabel = isError ? colorize('Error:', consoleColors.red) : '';
+	log(`${colorize('Time', consoleColors.magenta)}:  ${time}ms`);
 	const logDetails = [
-		colorize(req.method, ansiColors.green),
-		colorize(req.originalUrl, ansiColors.dimYellow),
-		`[${colorize('IP:', ansiColors.info)}${req.headers['x-forwarded-for'] || req.socket.remoteAddress}, `,
-		`${colorize('User-Agent:', ansiColors.info)}${req.headers['user-agent']}, `,
-		`${colorize('Body:', ansiColors.info)}${JSON.stringify(req.body)}]`,
+		colorize(req.method, consoleColors.green),
+		colorize(req.originalUrl, consoleColors.dimYellow),
+		`[${colorize('IP:', consoleColors.info)}${req.headers['x-forwarded-for'] || req.socket.remoteAddress}, `,
+		`${colorize('User-Agent:', consoleColors.info)}${req.headers['user-agent']}, `,
+		`${colorize('Body:', consoleColors.info)}${JSON.stringify(req.body)}]`,
 	].join('');
 
 	log(logDetails);

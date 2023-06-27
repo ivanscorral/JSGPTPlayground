@@ -5,11 +5,13 @@ require('dotenv').config();
 
 // express is a web application framework for Node.js
 const express = require('express');
-const log = require('./util/logger');
+const log = require('./utils/logger');
 const { logResponseTime } = require('./middleware/responseLogger');
+const errorHandler = require('./middleware/errorHandler');
 
 // Create an express application
 const app = express();
+app.use(errorHandler);
 app.use(logResponseTime);
 app.use(express.json());
 
