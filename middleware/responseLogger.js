@@ -3,16 +3,6 @@ const log = require('../utils/logger');
 const {colorize, consoleColors} = require('../utils/colorizer');
 const responseTime = require('response-time');
 
-
-/**
- * Colorizes a keyword with the given ANSI color code.
- *
- * @param {string} keyword The keyword to colorize.
- * @param {string} colorCode The ANSI color code.
- * @returns {string} The colorized keyword.
- */
-
-
 /**
  * Logs the response time of an HTTP request.
  */

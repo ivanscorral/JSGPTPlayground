@@ -5,6 +5,7 @@ const { v4 } = require('uuid');
 const JSONDatabaseManager = require('../db/jsondb');
 const OpenAIWrapper = require('../openai/openaiwrapper');
 const log = require('../utils/logger');
+const { colorize, consoleColors } = require('../utils/colorizer');
 
 // Import JSONDatabaseManager and OpenAIWrapper classes.
 const dbManager = new JSONDatabaseManager();
@@ -110,6 +111,7 @@ router.post('/createNewChat', async (req, res) => {
 async function getChat(req, res) {
 	const { chatId, authToken } = req.method === 'GET' ? req.query : req.body;
 
+	log(colorize(`GETTING CHAT: ${JSON.stringify({ chatId, authToken })}`, consoleColors.cyan));
 	// Early return if parameters are missing
 	if (!chatId || !authToken) return null;
 
@@ -117,9 +119,7 @@ async function getChat(req, res) {
 	const chat = await fetchChat(chatId);
 	return chat && chat.authToken === authToken
 		? chat
-		: res
-			.status(chat ? 401 : 400)
-			.json({ message: chat ? 'Unauthorized' : 'Chat not found' });
+		: null;
 }
 
 
@@ -183,7 +183,7 @@ router.post('/regenerateLastCompletion', async (req, res) => {
 router.post('/undoLastCompletion', async (req, res) => {
 	const chat = await getChat(req, res);
 	if (!chat) return;
-	let status = openaiWrapper.undoLastCompletion(chat);
+	let status = await openaiWrapper.undoLastCompletion(chat);
 	if (status === 0) return res.status(200).json({ message: 'Last completion undone successfully' });
 	if (chat.messages[chat.messages.length - 1]) {
 		chat.messages.pop();
