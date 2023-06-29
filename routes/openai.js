@@ -109,9 +109,8 @@ router.post('/createNewChat', async (req, res) => {
  * or invalid.
  */
 async function getChat(req, res) {
-	const { chatId, authToken } = req.method === 'GET' ? req.query : req.body;
 
-	log(colorize(`GETTING CHAT: ${JSON.stringify({ chatId, authToken })}`, consoleColors.cyan));
+	const { chatId, authToken } = getRequiredParameters(req, res, ['chatId', 'authToken']);
 	// Early return if parameters are missing
 	if (!chatId || !authToken) return null;
 
@@ -153,6 +152,7 @@ function getRequiredParameters(req, res, requiredParameters) {
 	// Send error response if any required parameters are missing
 	const missingParams = requiredParameters.filter((param) => !params[param]);
 	if (missingParams.length) {
+		log.basic(colorize(`Missing required parameters: ${missingParams.join(', ')}`, consoleColors.cyan));
 		res
 			.status(400)
 			.json({
@@ -206,7 +206,7 @@ router.post('/simpleChat', async (req, res) => {
 	let chat = await getChat(req, res);
 	if (!chat) return;
 
-	const message = req.body.message;
+	const message = getRequiredParameters(req, res, ['message']);
 	chat = await openaiWrapper.appendCompletion(chat, message);
 
 	log.basic(`Chat: ${chat.messages[chat.messages.length - 1].content}`);
