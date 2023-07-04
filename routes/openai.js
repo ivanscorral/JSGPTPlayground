@@ -187,10 +187,10 @@ router.post('/undoLastCompletion', async (req, res) => {
 		chat.messages.splice(-1, 1);
 		try {
 			await dbManager.storeChat(chat);
-			res.status(200).json({ message: 'Last completion undone successfully' });
+			return res.status(200).json({ message: 'Last completion undone successfully' });
 		} catch (error) {
 			log.basic('Error updating chat:', error);
-			res
+			return res
 				.status(500)
 				.error({ message: 'An error occurred while updating the chat' });
 		}
@@ -207,7 +207,14 @@ router.post('/simpleChat', async (req, res) => {
 	if (!chat) return;
 
 	const message = getRequiredParameters(req, res, ['message']);
-	chat = await openaiWrapper.appendCompletion(chat, message);
+	try {
+		chat = await openaiWrapper.appendCompletion(chat, message);
+	} catch	(error) {
+		log.basic(colorize('Error creating chat:', co), error);
+		return res
+			.status(500)
+			.error({ message: 'An error occurred while creating the chat' });
+	}
 
 	log.basic(`Chat: ${chat.messages[chat.messages.length - 1].content}`);
 
