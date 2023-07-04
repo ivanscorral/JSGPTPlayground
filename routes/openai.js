@@ -12,6 +12,19 @@ const dbManager = new JSONDatabaseManager();
 const openaiWrapper = new OpenAIWrapper(process.env.OPENAI_API_KEY);
 
 /**
+ * Check if a request is authorized
+ *
+ * @param {string} authToken - the authorization token
+ * @param {Object} res - the response object
+ * @returns {boolean} true if authorized, false otherwise
+ */
+async function isAuthorized(authToken, res) {
+	return authToken === process.env.AUTH_TOKEN
+		? true
+		: res.status(401).error({ message: 'Unauthorized' });
+}
+
+/**
  * Endpoint to retrieve chat object by chatId and authToken.
  * @name getChat
  * @route {POST} /getChat
@@ -22,9 +35,7 @@ const openaiWrapper = new OpenAIWrapper(process.env.OPENAI_API_KEY);
 router.get('/getChat', async (req, res) => {
 	const chat = await getChat(req, res);
 	return res.status(200).json({
-		messages: chat.messages,
-		usedTokens: chat.lastTokenCount,
-		model: chat.model,
+		chat
 	});
 });
 
@@ -39,18 +50,6 @@ router.get('/listPrompts', async (req, res, next) => {
 	}
 });
 
-/**
- * Check if a request is authorized
- *
- * @param {string} authToken - the authorization token
- * @param {Object} res - the response object
- * @returns {boolean} true if authorized, false otherwise
- */
-async function isAuthorized(authToken, res) {
-	return authToken === process.env.AUTH_TOKEN
-		? true
-		: res.status(401).json({ message: 'Unauthorized' });
-}
 /**
  * Endpoint to create a new chat
  *
@@ -93,7 +92,7 @@ router.post('/createNewChat', async (req, res) => {
 		return res.status(200).json({ chatId });
 	} catch (error) {
 		log.basic(`Error creating chat: ${error}`);
-		return res.status(500).json({ message: 'An error occurred waiting the chat' });
+		return res.status(500).error({ message: 'An error occurred waiting the chat' });
 	}
 });
 
@@ -152,7 +151,7 @@ function getRequiredParameters(req, res, requiredParameters) {
 	// Send error response if any required parameters are missing
 	const missingParams = requiredParameters.filter((param) => !params[param]);
 	if (missingParams.length) {
-		log.basic(colorize(`Missing required parameters: ${missingParams.join(', ')}`, consoleColors.cyan));
+		log.basic(colorize(`Missing required parameters: ${missingParams.join(', ')}`, consoleColors.accent));
 		res
 			.status(400)
 			.json({
@@ -181,21 +180,22 @@ router.post('/regenerateLastCompletion', async (req, res) => {
  * Undo the last completion of the chat.
  */
 router.post('/undoLastCompletion', async (req, res) => {
-	const chat = await getChat(req, res);
+	let chat = await getChat(req, res);
 	if (!chat) return;
-	let status = await openaiWrapper.undoLastCompletion(chat);
-	if (status === 0) return res.status(200).json({ message: 'Last completion undone successfully' });
-	if (chat.messages[chat.messages.length - 1]) {
-		chat.messages.pop();
+	chat = await openaiWrapper.undoLastCompletion(chat);
+	if (chat.messages.length > 0) {
+		chat.messages.splice(-1, 1);
 		try {
 			await dbManager.storeChat(chat);
 			res.status(200).json({ message: 'Last completion undone successfully' });
 		} catch (error) {
 			log.basic('Error updating chat:', error);
-			res.status(500).json({ message: 'An error occurred while updating the chat' });
+			res
+				.status(500)
+				.error({ message: 'An error occurred while updating the chat' });
 		}
 	} else {
-		return res.status(400).json({ message: 'There is nothing to undo' });
+		return res.status(400).error({ message: 'There is nothing to undo' });
 	}
 });
 

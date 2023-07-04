@@ -30,7 +30,7 @@ const envDebugLevel = process.env.DEBUG_LEVEL || 'NONE';
  * @param {string} message - The message to be logged.
  */
 function log(message) {
-	console.info(colorize('[DEBUG]: ', consoleColors.magenta) + message);
+	console.info(colorize.highlight('[DEBUG]: ') + message);
 }
 
 /**
@@ -40,7 +40,7 @@ function log(message) {
  */
 log.basic = function (message) {
 	if (debugLevels[envDebugLevel] >= debugLevels.BASIC) {
-		console.info(colorize('[BASIC]: ', consoleColors.lightGreen) + message);
+		console.info(colorize.blue('[BASIC]: ') + message);
 	}
 };
 
@@ -51,7 +51,7 @@ log.basic = function (message) {
  */
 log.verbose = function (message) {
 	if (debugLevels[envDebugLevel] >= debugLevels.VERBOSE) {
-		console.info(colorize('[VERBOSE]: ', consoleColors.orange) +  message);
+		console.info(colorize.warning('[VERBOSE]: ') +  message);
 	}
 };
 
@@ -62,7 +62,7 @@ log.verbose = function (message) {
  */
 log.all = function (message) {
 	if (debugLevels[envDebugLevel] === debugLevels.ALL) {
-		console.info(colorize('[ALL]: ', consoleColors.cyan) + message);
+		console.info(colorize.accent('[ALL]: ') + message);
 	}
 };
 
