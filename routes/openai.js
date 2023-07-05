@@ -19,9 +19,10 @@ const openaiWrapper = new OpenAIWrapper(process.env.OPENAI_API_KEY);
  * @returns {boolean} true if authorized, false otherwise
  */
 async function isAuthorized(authToken, res) {
+	log.info(`[isAuthorized] authToken: ${authToken}`);
 	return authToken === process.env.AUTH_TOKEN
 		? true
-		: res.status(401).error({ message: 'Unauthorized' });
+		: res.status(401).json({ message: 'Unauthorized' });
 }
 
 /**
@@ -35,7 +36,7 @@ async function isAuthorized(authToken, res) {
 router.get('/getChat', async (req, res) => {
 	const chat = await getChat(req, res);
 	return res.status(200).json({
-		chat
+		chat,
 	});
 });
 
@@ -59,16 +60,16 @@ router.get('/listPrompts', async (req, res, next) => {
 router.post('/createNewChat', async (req, res) => {
 	// Destructuring with default values
 	const {
-		authToken,
 		model = constants.DEFAULT_MODEL,
 		prompt = constants.DEFAULT_PROMPT,
-		max_tokens: maxTokens = constants.DEFAULT_MAX_TOKENS,
-		presence_penalty: presencePenalty = constants.DEFAULT_PRESENCE_PENALTY,
-		temperature = constants.DEFAULT_TEMPERATURE
+		maxTokens = constants.DEFAULT_MAX_TOKENS,
+		presencePenalty = constants.DEFAULT_PRESENCE_PENALTY,
+		temperature = constants.DEFAULT_TEMPERATURE,
+		authToken,
 	} = req.body;
 
 	// Check authorization
-	if (!await isAuthorized(authToken, res)) return;
+	if (!(await isAuthorized(authToken, res))) return;
 
 	// Generate a unique chatId
 	const chatId = v4();
@@ -92,7 +93,9 @@ router.post('/createNewChat', async (req, res) => {
 		return res.status(200).json({ chatId });
 	} catch (error) {
 		log.basic(`Error creating chat: ${error}`);
-		return res.status(500).error({ message: 'An error occurred waiting the chat' });
+		return res
+			.status(500)
+			.json({ message: 'An error occurred waiting the chat' });
 	}
 });
 
@@ -108,18 +111,17 @@ router.post('/createNewChat', async (req, res) => {
  * or invalid.
  */
 async function getChat(req, res) {
-
-	const { chatId, authToken } = getRequiredParameters(req, res, ['chatId', 'authToken']);
+	const { chatId, authToken } = getRequiredParameters(req, res, [
+		'chatId',
+		'authToken',
+	]);
 	// Early return if parameters are missing
 	if (!chatId || !authToken) return null;
 
 	// Fetch chat and return unauthorized or not found when necessary
 	const chat = await fetchChat(chatId);
-	return chat && chat.authToken === authToken
-		? chat
-		: null;
+	return chat && chat.authToken === authToken ? chat : null;
 }
-
 
 /**
  * Fetch chat from the database.
@@ -151,12 +153,15 @@ function getRequiredParameters(req, res, requiredParameters) {
 	// Send error response if any required parameters are missing
 	const missingParams = requiredParameters.filter((param) => !params[param]);
 	if (missingParams.length) {
-		log.basic(colorize(`Missing required parameters: ${missingParams.join(', ')}`, consoleColors.accent));
-		res
-			.status(400)
-			.json({
-				message: `Missing required parameters: ${missingParams.join(', ')}`,
-			});
+		log.basic(
+			colorize(
+				`Missing required parameters: ${missingParams.join(', ')}`,
+				consoleColors.accent
+			)
+		);
+		res.status(400).json({
+			message: `Missing required parameters: ${missingParams.join(', ')}`,
+		});
 		return null;
 	}
 
@@ -187,15 +192,17 @@ router.post('/undoLastCompletion', async (req, res) => {
 		chat.messages.splice(-1, 1);
 		try {
 			await dbManager.storeChat(chat);
-			return res.status(200).json({ message: 'Last completion undone successfully' });
+			return res
+				.status(200)
+				.json({ message: 'Last completion undone successfully' });
 		} catch (error) {
 			log.basic('Error updating chat:', error);
 			return res
 				.status(500)
-				.error({ message: 'An error occurred while updating the chat' });
+				.json({ message: 'An error occurred while updating the chat' });
 		}
 	} else {
-		return res.status(400).error({ message: 'There is nothing to undo' });
+		return res.status(400).json({ message: 'There is nothing to undo' });
 	}
 });
 
@@ -208,12 +215,12 @@ router.post('/simpleChat', async (req, res) => {
 
 	const message = getRequiredParameters(req, res, ['message']);
 	try {
-		chat = await openaiWrapper.appendCompletion(chat, message);
-	} catch	(error) {
-		log.basic(colorize('Error creating chat:', co), error);
+		chat = await openaiWrapper.chatMessageCompletion(chat, message);
+	} catch (error) {
+		log.error('Error appending completion: ', error);
 		return res
 			.status(500)
-			.error({ message: 'An error occurred while creating the chat' });
+			.json({ message: 'An error occurred while creating the chat' });
 	}
 
 	log.basic(`Chat: ${chat.messages[chat.messages.length - 1].content}`);
@@ -222,7 +229,9 @@ router.post('/simpleChat', async (req, res) => {
 	await dbManager.storeChat(chat);
 
 	// Respond with the newly generated message
-	return res.status(200).json({ response: chat.messages[chat.messages.length - 1] });
+	return res
+		.status(200)
+		.json({ response: chat.messages[chat.messages.length - 1] });
 });
 
 module.exports = router;

@@ -1,5 +1,7 @@
 const log = require('../utils/logger');
 const { Configuration, OpenAIApi } = require('openai');
+const sleep = (milliseconds) =>
+	new Promise((resolve) => setTimeout(resolve, milliseconds));
 
 /**
  * A wrapper class for the OpenAI API.
@@ -34,25 +36,54 @@ class OpenAIWrapper {
 			chat);
 	}
 
-	/**
-   * Generates the next message in the chat using the OpenAI API.
-   * @param {object} chat - The chat object containing the chat history.
-   * @returns {object} - The updated chat object.
-   * @throws {Error} - If there's an error with the OpenAI API.
-   */
-	async appendCompletion(chat, message) {
-		chat.messages.push({role: 'user', content: message});
-		const chatCompletion = await this.openai.createChatCompletion({
-			model: chat.model,
-			messages: chat.messages,
-			max_tokens: chat.maxTokens,
-			temperature: chat.temperature,
-			presence_penalty: chat.presence_penalty,
-		});
+	async appendCompletion(chat, message, retryCount = 0) {
+		try {
+			log.verbose(
+				`Appending completion with message: ${message} to chat: ${JSON.stringify(
+					chat
+				)}`
+			);
+			chat.messages.push({ role: 'user', content: message });
+			const chatCompletion = await this.openai.createChatCompletion({
+				model: chat.model,
+				messages: chat.messages,
+				max_tokens: chat.maxTokens,
+				temperature: chat.temperature,
+				presence_penalty: chat.presence_penalty,
+			});
 
-		// add the generated message to the chat history
-		chat.messages.push(chatCompletion.data.choices[0].message);
-		return chat;
+			// add the generated message to the chat history
+			chat.messages.push(chatCompletion.data.choices[0].message);
+			return chat;
+		} catch (error) {
+			if (error.status === 429 && retryCount < 3) {
+				// 429 is Too Many Requests
+				const delay = Math.pow(2, retryCount) * 1000; // Exponential backoff (2^retryCount seconds)
+				log.warning(`Rate limit hit. Retrying in ${delay / 1000} seconds.`);
+				await sleep(delay); // Wait before retrying
+				return await this.appendCompletion(chat, message, retryCount + 1);
+			} else {
+				log.error(`OpenAI API request error: ${JSON.stringify(error)}`);
+				throw error;
+			}
+		}
+	}
+
+	/**
+	 * Formats the given chat for OpenAI.
+	 *
+	 * @param {object} chat - The chat to be formatted.
+	 * @return {object[]} The formatted chat.
+	 */
+	formatChatForOpenAI(chat) {
+		// format the chat as needed for OpenAI
+		// Example: [{'role':'user', 'content':'your message'}, ...]
+		return chat.messages.map((message) => {
+			return {
+				role: message.role,
+				content: message.content,
+			};
+		});
 	}
 
 	/**
@@ -61,12 +92,13 @@ class OpenAIWrapper {
 	 * @returns {object} - The updated chat object.
 	 * @throws {Error} - If the chat is empty or there's an error with the OpenAI API.
 	 */
-	async chatMessageCompletion(chat) {
+	async chatMessageCompletion(chatId, message) {
+		const chat = await this.getAPIChat(chatId);
 		if (!chat.messages.length) throw new Error('Chat is empty');
-
+		log.warning(JSON.stringify(chat));
 		try {
 			// generate the next message using the OpenAI API
-			return await this.appendCompletion(chat);
+			return await this.appendCompletion(chat, message);
 		} catch (error) {
 			log(`OpenAI API error: ${error}`);
 			throw error;
@@ -87,7 +119,7 @@ class OpenAIWrapper {
 			try {
 				return await this.chatMessageCompletion(chat);
 			} catch (error) {
-				log.basic(`OpenAI API request error: ${error}`);
+				log.error(`OpenAI API request error: ${JSON.stringify(error)}`);
 				throw error;
 			}
 		}
@@ -117,10 +149,9 @@ class OpenAIWrapper {
 				model,
 				messages,
 				temperature,
-				max_tokens: maxTokens,
 			});
 		} catch (error) {
-			log.basic(`OpenAI API error: ${error}`);
+			log.error(`OpenAI API request error: ${JSON.stringify(error)}`);
 			throw error;
 		}
 	}

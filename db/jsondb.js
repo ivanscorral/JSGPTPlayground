@@ -35,6 +35,20 @@ class JSONDatabaseManager {
 		}
 	}
 
+	async getAPIChat(chatId) {
+		log.verbose(`Getting chat ${chatId}`);
+		const data = await this.getChat(chatId);
+
+		const newChat = {
+			model: data.model,
+			messages: data.messages,
+			temperature: data.temperature,
+			presence_penalty: data.presence_penalty,
+		};
+		return newChat;
+	}
+
+
 	/**
    * Stores chat data in the database.
    * @async
