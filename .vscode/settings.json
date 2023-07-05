@@ -5,4 +5,8 @@
     "prettier.singleQuote": true,
     "cSpell.caseSensitive": true,
     "cSpell.allowCompoundWords": true,
+    "codeium.enableConfig": {
+      "codeium.multiLine" : true,
+      "*": true
+    },
   }
