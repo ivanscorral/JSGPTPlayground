@@ -1,5 +1,5 @@
 const log = require('../utils/logger');
-const { colorize, consoleColors } = require('../utils/colorizer');
+const { colorize } = require('../utils/colorizer');
 const responseTime = require('response-time');
 
 /**
@@ -10,27 +10,27 @@ const responseTime = require('response-time');
  */
 const logResponseTime = responseTime((req, res, time) => {
 	const isError = res.statusCode >= 400;
-	const errorLabel = isError ? colorize.error('Error:') : '';
+	const localTime = new Date().toLocaleTimeString();
 
-	// Log the response time
-	log(`${colorize.highlight('Time', consoleColors.highlight)}:  ${time}ms`);
+	// Log the response time with system time
+	log.basic(`[${localTime}] Response Time: ${colorize.highlight(`${time}ms`)}`);
 
 	// Log request details
 	const logDetails = [
-		colorize(req.method, consoleColors.green),
-		colorize(req.originalUrl, consoleColors.lightWarning),
-		`[${colorize.info('IP:')}${
+		colorize.success(req.method),
+		colorize.highlight(req.originalUrl),
+		`[${colorize.info('IP:')} ${
 			req.headers['x-forwarded-for'] || req.socket.remoteAddress
 		}, `,
-		`${colorize.info('User-Agent:')}${req.headers['user-agent']}, `,
-		`${colorize.info('Body:')}${JSON.stringify(req.body)}]`,
-	].join('');
+		`${colorize.info('User-Agent:')} ${req.headers['user-agent']}, `,
+		`${colorize.info('Body:')} ${JSON.stringify(req.body)}]`,
+	].join(' ');
 
-	log(logDetails);
+	log.basic(`[${localTime}] Request Details: ${logDetails}`);
 
 	// Log error details if the response status code indicates an error
 	if (isError) {
-		log(`${errorLabel} [${res.statusCode}]: ${res.statusMessage}`);
+		log.error(`[${localTime}] Error [${res.statusCode}]: ${res.statusMessage}`);
 	}
 });
 

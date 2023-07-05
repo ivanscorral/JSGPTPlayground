@@ -75,6 +75,7 @@ colorize.info = (text) => colorize(text, consoleColors.info);
  * @returns {string} The text colorized as a warning message.
  */
 colorize.warn = (text) => colorize(text, consoleColors.warning);
+colorize.warning = colorize.warn;
 
 /**
  * Colorizes the given text as a success message.
