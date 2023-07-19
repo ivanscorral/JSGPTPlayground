@@ -25,6 +25,8 @@
 		"uuid": "^9.0.0"
 	},
 	"devDependencies": {
-		"nodemon": "^2.0.22"
+		"eslint": "8.44.0",
+		"nodemon": "^2.0.22",
+		"prettier": "2.8.8"
 	}
 }
